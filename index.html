@@ -440,7 +440,7 @@
 <script>
 (function(){
   if(typeof L==='undefined'){return;}
-  var map=L.map('map',{scrollWheelZoom:false}).setView([-22,127],4);
+  var map=L.map('map',{scrollWheelZoom:true}).setView([-22,127],4);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
     maxZoom:14, attribution:'© OpenStreetMap'}).addTo(map);
   var gold={radius:9,color:'#e3b341',fillColor:'#e3b341',fillOpacity:.95,weight:2};
