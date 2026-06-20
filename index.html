@@ -42,7 +42,15 @@
   .p-must{background:rgba(226,92,92,.18);color:#ff8d8d;border:1px solid #5a2b2b}
   .p-do{background:rgba(91,155,213,.18);color:#9cc6f0;border:1px solid #2c4763}
   .p-rec{background:rgba(76,175,120,.18);color:#84d6a8;border:1px solid #2c5a44}
-  #map{height:460px;border-radius:12px;border:1px solid var(--line);margin-top:6px}
+  #map-wrap{position:relative;margin-top:6px}
+  #map{height:460px;border-radius:12px;border:1px solid var(--line)}
+  #map-full-btn{position:absolute;top:10px;right:10px;z-index:600;background:#11181f;color:var(--ink);
+    border:1px solid var(--line);border-radius:8px;padding:7px 12px;font-size:13px;font-weight:600;
+    cursor:pointer;box-shadow:var(--shadow);display:inline-flex;align-items:center;gap:6px}
+  #map-full-btn:hover{background:var(--panel2)}
+  body.map-fullscreen{overflow:hidden}
+  body.map-fullscreen #map-wrap{position:fixed;inset:0;margin:0;z-index:3000}
+  body.map-fullscreen #map{height:100%;border-radius:0;border:none}
   .legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:10px;font-size:13px;color:var(--muted)}
   .legend span{display:inline-flex;align-items:center;gap:6px}
   .dot{width:12px;height:12px;border-radius:50%;display:inline-block}
@@ -216,7 +224,10 @@
 <section id="map-sec">
   <h2><span class="ic">🗺</span> The area &amp; both routes</h2>
   <p class="lead">The prospecting ground sits ~40 km east/south-east of Halls Creek, near Mount Flora and Skillion Hill, on the Johnston River. The map plots the site, the two driving routes, and key fuel/overnight towns. (Needs internet to load map tiles.)</p>
-  <div id="map"></div>
+  <div id="map-wrap">
+    <button id="map-full-btn" type="button" aria-label="Toggle full page map">⛶ Full page</button>
+    <div id="map"></div>
+  </div>
   <div class="legend">
     <span><i class="dot" style="background:#e3b341"></i> Prospecting site (Wunguu)</span>
     <span><i class="dot" style="background:#fff"></i> Halls Creek (base town)</span>
@@ -443,6 +454,15 @@
   var charlie=[[-28.02,153.40],[-26.65,153.09],[-26.57,148.79],[-23.44,144.25],[-20.72,139.49],[-19.65,134.19],[-14.47,132.27],[-15.77,128.74],[-18.2249,127.6694]];
   L.polyline(steve,{color:'#5b9bd5',weight:3,opacity:.85}).addTo(map).bindPopup('Steve — Dawesville → Halls Creek (~2,950 km)');
   L.polyline(charlie,{color:'#4caf78',weight:3,opacity:.85}).addTo(map).bindPopup('Charlie & Drew — Gold Coast → Halls Creek (~4,150 km)');
+
+  var btn=document.getElementById('map-full-btn');
+  function setFull(on){
+    document.body.classList.toggle('map-fullscreen',on);
+    if(btn)btn.innerHTML=on?'⛶ Exit full page':'⛶ Full page';
+    setTimeout(function(){map.invalidateSize();},250);
+  }
+  if(btn)btn.addEventListener('click',function(){setFull(!document.body.classList.contains('map-fullscreen'));});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&document.body.classList.contains('map-fullscreen'))setFull(false);});
 })();
 
 var KEY='wunguuPlan_v1';
