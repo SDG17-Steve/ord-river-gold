@@ -6,6 +6,7 @@
 <title>Wunguu / Old Flora Valley — Gold Prospecting Plan</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://unpkg.com/esri-leaflet@3.0.12/dist/esri-leaflet.js"></script>
 <style>
   :root{
     --bg:#0f1419; --panel:#1a222c; --panel2:#222d39; --ink:#e8eef4; --muted:#9fb0c0;
@@ -223,7 +224,7 @@
 
 <section id="map-sec">
   <h2><span class="ic">🗺</span> The area &amp; both routes</h2>
-  <p class="lead">The prospecting ground sits ~40 km east/south-east of Halls Creek, near Mount Flora and Skillion Hill, on the Johnston River. The map plots the site, the two driving routes, and key fuel/overnight towns. (Needs internet to load map tiles.)</p>
+  <p class="lead">The prospecting ground sits ~40 km east/south-east of Halls Creek, near Mount Flora and Skillion Hill, on the Johnston River. The map plots the site, the two driving routes, and key fuel/overnight towns. Use the layers control (top-right) to switch to <b>Satellite</b> and toggle live <b>tenement, pastoral-lease and Ord River Regeneration Reserve</b> boundaries — pulled live from WA Government data. Zoom in on the site to see the boundaries clearly. (Needs internet.)</p>
   <div id="map-wrap">
     <button id="map-full-btn" type="button" aria-label="Toggle full page map">⛶ Full page</button>
     <div id="map"></div>
@@ -233,6 +234,9 @@
     <span><i class="dot" style="background:#fff"></i> Halls Creek (base town)</span>
     <span><i class="dot" style="background:#5b9bd5"></i> Steve — Dawesville route</span>
     <span><i class="dot" style="background:#4caf78"></i> Charlie &amp; Drew — Gold Coast route</span>
+    <span><i class="dot" style="background:#e25c5c;border-radius:2px"></i> Target ELs (5085/5959/6216)</span>
+    <span><i class="dot" style="background:#4caf78;border-radius:2px"></i> Ord River Regen. Reserve</span>
+    <span><i class="dot" style="background:#5b9bd5;border-radius:2px"></i> Tenements / pastoral (toggle)</span>
   </div>
 </section>
 
@@ -441,8 +445,10 @@
 (function(){
   if(typeof L==='undefined'){return;}
   var map=L.map('map',{scrollWheelZoom:true}).setView([-22,127],4);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-    maxZoom:14, attribution:'© OpenStreetMap'}).addTo(map);
+  var osm=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    maxZoom:19, attribution:'© OpenStreetMap'}).addTo(map);
+  var sat=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    {maxZoom:19, attribution:'Esri World Imagery'});
   var gold={radius:9,color:'#e3b341',fillColor:'#e3b341',fillOpacity:.95,weight:2};
   var white={radius:7,color:'#fff',fillColor:'#fff',fillOpacity:.9,weight:2};
   L.circleMarker([-18.3237,127.9982],gold).addTo(map).bindPopup('<b>Prospecting site — Wunguu Community / Old Flora Valley</b><br>18.324°S 127.998°E (MGA Z52 394140E 7973716N)<br>Tenements E80/5959, 5609, 5085, 6216');
@@ -454,6 +460,38 @@
   var charlie=[[-28.02,153.40],[-26.65,153.09],[-26.57,148.79],[-23.44,144.25],[-20.72,139.49],[-19.65,134.19],[-14.47,132.27],[-15.77,128.74],[-18.2249,127.6694]];
   L.polyline(steve,{color:'#5b9bd5',weight:3,opacity:.85}).addTo(map).bindPopup('Steve — Dawesville → Halls Creek (~2,950 km)');
   L.polyline(charlie,{color:'#4caf78',weight:3,opacity:.85}).addTo(map).bindPopup('Charlie & Drew — Gold Coast → Halls Creek (~4,150 km)');
+
+  // --- Live WA Government boundary overlays (esri-leaflet) ---
+  if(typeof L.esri!=='undefined'){
+    var IM='https://services.slip.wa.gov.au/public/rest/services/SLIP_Public_Services/Industry_and_Mining/MapServer';
+    var PP='https://services.slip.wa.gov.au/public/rest/services/SLIP_Public_Services/Property_and_Planning/MapServer';
+    // All mining tenements (server-rendered: green = Live/granted, blue = Pending)
+    var tenements=L.esri.dynamicMapLayer({url:IM,layers:[3],opacity:0.55});
+    tenements.bindPopup(function(err,fc){
+      if(err||!fc||!fc.features.length)return false;
+      var a=fc.features[0].properties;
+      return '<b>'+(a.fmt_tenid||a.tenid)+'</b> — '+(a.tenstatus||'')+'<br>Type: '+(a.type||'n/a')+'<br>Holder: '+(a.holder1||'n/a');
+    },{maxWidth:280});
+    // Pastoral leases
+    var pastoral=L.esri.dynamicMapLayer({url:PP,layers:[122],opacity:0.5});
+    // Ord River Regeneration Reserve (DBCA legislated lands, filtered)
+    var reserve=L.esri.featureLayer({url:PP+'/15',where:"leg_name = 'Ord River Regeneration Reserve'",
+      style:function(){return{color:'#4caf78',weight:1.5,fillColor:'#4caf78',fillOpacity:0.15};}});
+    reserve.bindPopup(function(l){var a=l.feature.properties;
+      return '<b>Ord River Regeneration Reserve</b><br>Reg No: '+(a.leg_regno||'n/a')+
+             '<br>Area: '+(a.leg_poly_area?Math.round(a.leg_poly_area).toLocaleString()+' ha':'n/a');});
+    // The three target exploration licences (highlighted)
+    var targetELs=L.esri.featureLayer({url:IM+'/3',where:"fmt_tenid IN ('E 80/5085','E 80/5959','E 80/6216')",
+      style:function(){return{color:'#e25c5c',weight:3,fillColor:'#e25c5c',fillOpacity:0.18};}});
+    targetELs.bindPopup(function(l){var a=l.feature.properties;
+      return '<b>'+(a.fmt_tenid||a.tenid)+'</b> — '+(a.tenstatus||'')+'<br>Holder: '+(a.holder1||'n/a');});
+    targetELs.addTo(map);
+    L.control.layers(
+      {'Street (OSM)':osm,'Satellite':sat},
+      {'◆ Target ELs (5085/5959/6216)':targetELs,'All mining tenements':tenements,'Pastoral leases':pastoral,'Ord River Regeneration Reserve':reserve},
+      {collapsed:true}
+    ).addTo(map);
+  }
 
   var btn=document.getElementById('map-full-btn');
   function setFull(on){
