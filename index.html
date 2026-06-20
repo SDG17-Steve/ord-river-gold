@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wunguu / Old Flora Valley — Gold Prospecting Plan</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+  :root{
+    --bg:#0f1419; --panel:#1a222c; --panel2:#222d39; --ink:#e8eef4; --muted:#9fb0c0;
+    --gold:#e3b341; --gold2:#c9962e; --red:#e25c5c; --green:#4caf78; --blue:#5b9bd5;
+    --line:#2c3a48; --shadow:0 4px 18px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg);color:var(--ink);line-height:1.55;font-size:15px}
+  a{color:var(--gold)}
+  header.hero{background:linear-gradient(135deg,#1c2630,#0f1419);border-bottom:3px solid var(--gold);
+    padding:28px 22px 22px}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 16px}
+  h1{margin:0 0 4px;font-size:26px;letter-spacing:.3px}
+  h1 span{color:var(--gold)}
+  .sub{color:var(--muted);font-size:14px}
+  .meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+  .chip{background:var(--panel2);border:1px solid var(--line);border-radius:20px;padding:6px 13px;font-size:13px}
+  .chip b{color:var(--gold)}
+  nav{position:sticky;top:0;z-index:500;background:#11181f;border-bottom:1px solid var(--line);
+    display:flex;flex-wrap:wrap;gap:4px;padding:8px 16px;overflow-x:auto}
+  nav a{color:var(--muted);text-decoration:none;font-size:13px;padding:6px 11px;border-radius:7px;white-space:nowrap}
+  nav a:hover{background:var(--panel2);color:var(--ink)}
+  section{padding:30px 0;border-bottom:1px solid var(--line)}
+  h2{font-size:21px;margin:0 0 6px;display:flex;align-items:center;gap:9px}
+  h2 .ic{font-size:22px}
+  .lead{color:var(--muted);margin:0 0 18px;max-width:760px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;margin:14px 0;box-shadow:var(--shadow)}
+  .card h3{margin:0 0 8px;font-size:17px;color:var(--gold)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  @media(max-width:760px){.grid2,.grid3{grid-template-columns:1fr}}
+  .pill{display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:12px;text-transform:uppercase;letter-spacing:.5px}
+  .p-must{background:rgba(226,92,92,.18);color:#ff8d8d;border:1px solid #5a2b2b}
+  .p-do{background:rgba(91,155,213,.18);color:#9cc6f0;border:1px solid #2c4763}
+  .p-rec{background:rgba(76,175,120,.18);color:#84d6a8;border:1px solid #2c5a44}
+  #map{height:460px;border-radius:12px;border:1px solid var(--line);margin-top:6px}
+  .legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:10px;font-size:13px;color:var(--muted)}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .dot{width:12px;height:12px;border-radius:50%;display:inline-block}
+  .check{display:flex;gap:11px;padding:11px 12px;border:1px solid var(--line);border-radius:9px;margin:8px 0;
+    background:var(--panel2);align-items:flex-start}
+  .check input[type=checkbox]{width:20px;height:20px;margin-top:2px;accent-color:var(--gold);flex:none;cursor:pointer}
+  .check .body{flex:1}
+  .check .t{font-weight:600}
+  .check.done .t{text-decoration:line-through;color:var(--muted)}
+  .check .d{font-size:13px;color:var(--muted);margin-top:3px}
+  .check .d a{word-break:break-word}
+  .owner{margin-top:7px;display:flex;gap:5px;align-items:center;flex-wrap:wrap}
+  .owner small{color:var(--muted);font-size:11px}
+  .owner button{font-size:11px;padding:3px 9px;border-radius:11px;border:1px solid var(--line);background:transparent;color:var(--muted);cursor:pointer}
+  .owner button.on{background:var(--gold);color:#1a1a1a;border-color:var(--gold);font-weight:700}
+  .progress{height:9px;background:var(--panel2);border-radius:6px;overflow:hidden;margin:4px 0 16px}
+  .progress > i{display:block;height:100%;background:linear-gradient(90deg,var(--gold2),var(--gold));width:0}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--gold);font-size:12px;text-transform:uppercase;letter-spacing:.4px}
+  tr:hover td{background:rgba(255,255,255,.02)}
+  .day{display:flex;gap:14px;margin:0}
+  .day .num{flex:none;width:42px;height:42px;border-radius:50%;background:var(--panel2);border:2px solid var(--gold);
+    display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--gold);font-size:13px}
+  .day .info{flex:1;padding-bottom:18px;border-left:2px solid var(--line);margin-left:-22px;padding-left:34px;margin-top:6px}
+  .warn{background:rgba(226,92,92,.12);border:1px solid #5a2b2b;border-radius:10px;padding:13px 15px;margin:14px 0}
+  .warn b{color:#ff9d9d}
+  .ok{background:rgba(76,175,120,.1);border:1px solid #2c5a44;border-radius:10px;padding:13px 15px;margin:14px 0}
+  .note textarea{width:100%;min-height:70px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;
+    color:var(--ink);padding:10px;font-family:inherit;font-size:14px;resize:vertical}
+  .toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+  .btn{background:var(--gold);color:#1a1a1a;border:none;padding:9px 16px;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px}
+  .btn.sec{background:transparent;color:var(--gold);border:1px solid var(--gold)}
+  .filterbar{display:flex;gap:7px;flex-wrap:wrap;margin:6px 0 14px}
+  .filterbar button{background:var(--panel2);border:1px solid var(--line);color:var(--muted);padding:6px 13px;border-radius:18px;cursor:pointer;font-size:13px}
+  .filterbar button.active{background:var(--gold);color:#1a1a1a;font-weight:700;border-color:var(--gold)}
+  .small{font-size:12.5px;color:var(--muted)}
+  ul.tight{margin:6px 0 0;padding-left:20px}
+  ul.tight li{margin:4px 0}
+  footer{padding:26px 16px 50px;color:var(--muted);font-size:12.5px;text-align:center}
+  .tenement{display:inline-block;background:var(--panel2);border:1px solid var(--gold2);color:var(--gold);
+    border-radius:6px;padding:2px 8px;font-family:monospace;font-size:13px;margin:2px}
+  @media print{nav,.toolbar,.btn,.filterbar{display:none}body{background:#fff;color:#000}.card{box-shadow:none;border:1px solid #ccc}#map{display:none}}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <h1>Gold Prospecting Plan — <span>Wunguu Community / Old Flora Valley</span></h1>
+    <div class="sub">East Kimberley, Western Australia · Kimberley Mineral Field (M.F. 80) · Shire of Halls Creek</div>
+    <div class="meta">
+      <div class="chip">📍 <b>Site:</b> 18.324°S, 127.998°E (MGA Z52: 394140E, 7973716N)</div>
+      <div class="chip">🗓 <b>Depart:</b> Charlie/Drew 2 Aug · Steve 3 Aug</div>
+      <div class="chip">⛏ <b>Field window:</b> 10 nights</div>
+      <div class="chip">🤝 <b>All meet Halls Creek:</b> late Wed 6 Aug</div>
+      <div class="chip">👥 <b>Party:</b> Steve · Charlie · Drew</div>
+      <div class="chip">🌤 <b>Season:</b> Dry (ideal)</div>
+    </div>
+    <p class="small" style="margin-top:14px;max-width:820px">Your screenshot shows four <b>Exploration Licences</b> around the site
+      — <span class="tenement">E 80/5959</span><span class="tenement">E 80/5609</span><span class="tenement">E 80/5085</span><span class="tenement">E 80/6216</span>
+      — all in the Kimberley Mineral Field. You can only prospect on these with each holder's <b>written consent</b>, plus a Miner's Right and Aboriginal heritage/native-title clearance. The legal checklist below is the part to get right first.</p>
+  </div>
+</header>
+
+<div class="wrap" style="margin-top:18px">
+  <a href="https://sdgseventeen-my.sharepoint.com/:f:/g/personal/steve_sdg17_net/IgDG4eSMDSQYR5u5JXDUUb32AUgInsSttE8oESqxMlw5tPQ?e=PliZfq" target="_blank" rel="noopener"
+     style="display:flex;align-items:center;gap:14px;text-decoration:none;background:linear-gradient(135deg,#e3b341,#c9962e);color:#1a1a1a;border-radius:12px;padding:16px 20px;box-shadow:0 6px 20px rgba(0,0,0,.4)">
+    <span style="font-size:26px">📁</span>
+    <span>
+      <span style="display:block;font-size:17px;font-weight:800">Shared OneDrive folder — Ord River Gold</span>
+      <span style="display:block;font-size:13px;font-weight:600;opacity:.85">All three of us: drop maps, permits, consents, photos &amp; planning docs here. Click to open.</span>
+    </span>
+  </a>
+</div>
+
+<nav class="wrap">
+  <a href="https://sdgseventeen-my.sharepoint.com/:f:/g/personal/steve_sdg17_net/IgDG4eSMDSQYR5u5JXDUUb32AUgInsSttE8oESqxMlw5tPQ?e=PliZfq" target="_blank" rel="noopener" style="color:var(--gold)">📁 Shared Folder</a>
+  <a href="#legal">⚖️ Legal &amp; Access</a>
+  <a href="#map-sec">🗺 Map</a>
+  <a href="#routes">🚙 Driving Plans</a>
+  <a href="#costs">💰 Costs</a>
+  <a href="#timeline">📅 Master Timeline</a>
+  <a href="#field">⛏ Field Plan</a>
+  <a href="#pack">🎒 Packing</a>
+  <a href="#contacts">📞 Contacts</a>
+  <a href="#" onclick="window.print();return false;" style="color:var(--gold)">🖨 Print / Save PDF</a>
+</nav>
+
+<div class="wrap">
+
+<section id="legal">
+  <h2><span class="ic">⚖️</span> Legal compliance &amp; land-access protocols</h2>
+  <p class="lead">This is the heart of the request: prospecting here legally means stacking several permissions. Treat every <span class="pill p-must">Must</span> item as a hard gate — going to the field without them risks penalties up to <b>$150,000</b> for illegal prospecting, plus offences under the Aboriginal Heritage Act. Tick items off and assign an owner. Progress saves in your browser.</p>
+  <div class="progress" data-for="legal"><i></i></div>
+  <div class="filterbar" data-filter="legal">
+    <button class="active" data-who="all">Everyone</button>
+    <button data-who="Steve">Steve</button>
+    <button data-who="Charlie">Charlie</button>
+    <button data-who="Drew">Drew</button>
+  </div>
+
+  <div class="card" data-list="legal">
+    <div class="check" data-id="L1" data-who="Steve">
+      <input type="checkbox">
+      <div class="body">
+        <div class="t"><span class="pill p-must">Must</span> Each person holds a current Miner's Right</div>
+        <div class="d">One per prospector (Steve, Charlie, Drew). A Miner's Right authorises hand-tool gold prospecting and metal detecting on Crown land, on pending/granted tenements <i>with the holder's consent</i>, and on private/pastoral land with the occupier's written permission. Fee ~$30, effectively lifetime. Apply online via DMPE (Dept of Mines, Petroleum &amp; Exploration). <a href="https://www.wa.gov.au/organisation/department-of-mines-petroleum-and-exploration/miners-rights" target="_blank">wa.gov.au — Miner's Rights</a></div>
+      </div>
+    </div>
+    <div class="check" data-id="L2" data-who="Steve">
+      <input type="checkbox">
+      <div class="body">
+        <div class="t"><span class="pill p-must">Must</span> Identify the registered holders of E 80/5959, 5609, 5085 &amp; 6216</div>
+        <div class="d">Look each tenement up in <b>Mineral Titles Online (MTO)</b> / TENGRAPH Web — search by number (e.g. "E80/5959") to view the Tenement Register and holder details. If unsure, phone the DMPE <b>Mining Information Centre on (08) 9222 3626</b> or email <a href="mailto:mineraltitles.enquiries@dmirs.wa.gov.au">mineraltitles.enquiries@dmirs.wa.gov.au</a>. <a href="https://www.wa.gov.au/service/natural-resources/mineral-resources/access-mineral-titles-online-mto" target="_blank">Access MTO</a></div>
+      </div>
+    </div>
+    <div class="check" data-id="L3" data-who="Steve">
+      <input type="checkbox">
+      <div class="body">
+        <div class="t"><span class="pill p-must">Must</span> Obtain written consent from each tenement holder you'll prospect on</div>
+        <div class="d">Prospecting on a granted Exploration Licence is <b>not</b> permitted without the holder's written consent — your Miner's Right alone is not enough on someone else's tenement. Contact each holder in writing, state exactly where/when you'll be and that you'll use hand tools/detectors only, and get their consent (and any conditions) <b>in writing before you leave</b>. Keep copies in the vehicles.</div>
+      </div>
+    </div>
+    <div class="check" data-id="L4" data-who="Charlie">
+      <input type="checkbox">
+      <div class="body">
+        <div class="t"><span class="pill p-must">Must</span> Native title — engage the Jaru Traditional Owners / KLC before entry</div>
+        <div class="d">The Halls Creek / Flora Valley area is subject to the <b>Jaru native title determination</b>. Best practice (and often a condition of tenement access) is a heritage clearance / site-avoidance arrangement via the Jaru Prescribed Body Corporate, coordinated through the <b>Kimberley Land Council</b>. Contact them early — consultation takes time. <a href="https://www.klc.org.au" target="_blank">klc.org.au</a></div>
+      </div>
+    </div>
+    <div class="check" data-id="L5" data-who="Charlie">
+      <input type="checkbox">
+      <div class="body">
+        <div class="t"><span class="pill p-must">Must</span> Check registered Aboriginal sites (ACHIS) &amp; plan to avoid them</div>
+        <div class="d">Under the <b>Aboriginal Heritage Act 1972</b> it is an offence to excavate, damage or alter a registered Aboriginal site without Ministerial (s.18) consent. Search the area in the <b>Aboriginal Cultural Heritage Inquiry System (ACHIS)</b> before you go and mark any sites as no-go zones on your GPS. Hand-tool prospecting is low-impact, but you must steer clear of sites. <a href="https://www.wa.gov.au/organisation/department-of-planning-lands-and-heritage/aboriginal-heritage-western-australia" target="_blank">DPLH — Aboriginal heritage</a></div>
+      </div>
+    </div>
+    <div class="check" data-id="L6" data-who="Drew">
+      <input type="checkbox">
+      <div class="body">
+        <div class="t"><span class="pill p-must">Must</span> Entry/transit permit if crossing Aboriginal Lands Trust reserve land</div>
+        <div class="d">Wunguu is an Aboriginal community at Old Flora Valley. If your route or campsite crosses a proclaimed <b>ALT reserve</b>, you need a free <b>Entry/Transit Permit</b> via the AAPA Lands Permit System (ALPS), administered by DPLH — Traditional Owners are consulted and may refuse. Apply well ahead; permits are issued business hours only. Phone <b>1300 651 077</b>, email <a href="mailto:alps@dplh.wa.gov.au">alps@dplh.wa.gov.au</a>. <a href="https://www.dplh.wa.gov.au/entrypermits" target="_blank">DPLH — Entry permits</a></div>
+      </div>
+    </div>
+    <div class="check" data-id="L7" data-who="Drew">
+      <input type="checkbox">
+      <div class="body">
+        <div class="t"><span class="pill p-must">Must</span> Notify / get consent from the pastoral lessee (Flora Valley / Old Flora Valley Station)</div>
+        <div class="d">If any ground is under pastoral lease, the Mining Act lets you access it but you <b>must not</b> prospect on or within <b>400 m</b> of any homestead, water works, dam, well or bore without the occupier's written consent, and you must leave gates as found and avoid stock. Phone ahead as a courtesy and to confirm access tracks and current station conditions.</div>
+      </div>
+    </div>
+    <div class="check" data-id="L8" data-who="Charlie">
+      <input type="checkbox">
+      <div class="body">
+        <div class="t"><span class="pill p-do">Do</span> Carry all paperwork (digital + printed) in both vehicles</div>
+        <div class="d">Miner's Rights, written tenement consents, heritage/ALPS permits, pastoralist contact, marked tenement boundaries and ACHIS no-go points. If a DMPE inspector, ranger or pastoralist asks, you can show authority on the spot.</div>
+      </div>
+    </div>
+    <div class="check" data-id="L9" data-who="Steve">
+      <input type="checkbox">
+      <div class="body">
+        <div class="t"><span class="pill p-rec">Smart</span> Confirm rules: hand tools &amp; detectors only — no machinery, non-commercial</div>
+        <div class="d">A Miner's Right does not allow powered earthmoving or commercial mining. Detectors and pans are fine; you may keep gold found within your rights. Fill any holes you dig and pack out all rubbish.</div>
+      </div>
+    </div>
+  </div>
+  <p class="small">Sources: WA Govt Miner's Rights &amp; "Where you can prospect"; Mining Act 1978 (WA) s.20; DMPE Mineral Titles Online; Kimberley Land Council (Jaru determination); DPLH Aboriginal Heritage &amp; Entry Permits (ALPS); Aboriginal Affairs Planning Authority Act 1972.</p>
+</section>
+
+<section id="map-sec">
+  <h2><span class="ic">🗺</span> The area &amp; both routes</h2>
+  <p class="lead">The prospecting ground sits ~40 km east/south-east of Halls Creek, near Mount Flora and Skillion Hill, on the Johnston River. The map plots the site, the two driving routes, and key fuel/overnight towns. (Needs internet to load map tiles.)</p>
+  <div id="map"></div>
+  <div class="legend">
+    <span><i class="dot" style="background:#e3b341"></i> Prospecting site (Wunguu)</span>
+    <span><i class="dot" style="background:#fff"></i> Halls Creek (base town)</span>
+    <span><i class="dot" style="background:#5b9bd5"></i> Steve — Dawesville route</span>
+    <span><i class="dot" style="background:#4caf78"></i> Charlie &amp; Drew — Gold Coast route</span>
+  </div>
+</section>
+
+<section id="routes">
+  <h2><span class="ic">🚙</span> Getting there — two driving plans</h2>
+  <p class="lead">Both vehicles depart <b>3 Aug 2026</b> and rendezvous at <b>Halls Creek</b>. All distances/times are approximate driving figures — pad them for fatigue, road trains, livestock and time-zone changes (QLD AEST → NT ACST −0:30 → WA AWST −1:30).</p>
+
+  <div class="warn">
+    <b>⚠ The plan: everyone in Halls Creek late Wed 6 Aug, drive in to Wunguu Thu 7 Aug.</b> Steve's ~2,950 km is comfortable in 4 days from <b>Sun 3 Aug</b>. Charlie &amp; Drew's ~4,150 km is the tight one — to arrive by the 6th they need to leave <b>Sat 2 Aug</b> and run 5 solid days (two of them ~1,000 km+). If you'd rather shorter days, leave <b>Fri 1 Aug</b>. Don't compress it into 4 days from the 3rd — that's dangerous 1,000 km+ daily driving.
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h3>🔵 Steve — Mitsubishi Triton (2018 dual-cab 4WD)</h3>
+      <div class="small">100 Country Club Drive, Dawesville → Halls Creek · <b>~2,950 km</b> · Great Northern Highway · sealed all the way · <b>depart Sun 3 Aug · 3 nights / arrive Wed 6 Aug</b></div>
+      <table>
+        <tr><th>Day</th><th>Leg</th><th>~km</th><th>Fuel / notes</th></tr>
+        <tr><td>Sun 3 Aug</td><td>Dawesville → <b>Meekatharra</b></td><td>830</td><td>Wubin, Mt Magnet, Cue. Big first day.</td></tr>
+        <tr><td>Mon 4 Aug</td><td>Meekatharra → <b>Port Hedland</b></td><td>860</td><td>Kumarina, Newman. Fuel up at Newman.</td></tr>
+        <tr><td>Tue 5 Aug</td><td>Port Hedland → <b>Broome</b></td><td>610</td><td>Sandfire Roadhouse midway.</td></tr>
+        <tr><td>Wed 6 Aug</td><td>Broome → <b>Halls Creek</b></td><td>690</td><td>Fitzroy Crossing. Arrive late PM Wed 6 Aug — meet Charlie &amp; Drew. Depart for Wunguu Thu 7 Aug.</td></tr>
+      </table>
+      <p class="small">Triton is a true 4WD — fine for the station tracks. Fit/check two spares, recovery gear and long-range fuel before leaving.</p>
+    </div>
+
+    <div class="card">
+      <h3>🟢 Charlie &amp; Drew — Toyota Tundra</h3>
+      <div class="small">Gold Coast → <b>Sunshine Coast</b> (pick up Drew) → Halls Creek · <b>~4,150 km</b> · cross-continent · <b>depart Sat 2 Aug · 4 nights on the road / arrive late Wed 6 Aug</b></div>
+      <table>
+        <tr><th>Day</th><th>Leg</th><th>~km</th><th>Fuel / notes</th></tr>
+        <tr><td>Sat 2 Aug</td><td>Gold Coast → Sunshine Coast (Drew) → <b>Charleville</b></td><td>~1,030</td><td>Toowoomba, Roma. Big first day — collect Drew early.</td></tr>
+        <tr><td>Sun 3 Aug</td><td>Charleville → <b>Mount Isa</b></td><td>~1,120</td><td>Longreach, Cloncurry. Long haul.</td></tr>
+        <tr><td>Mon 4 Aug</td><td>Mount Isa → <b>Tennant Creek</b></td><td>~660</td><td>Barkly Hwy. Cross into NT (−0:30).</td></tr>
+        <tr><td>Tue 5 Aug</td><td>Tennant Creek → <b>Katherine</b></td><td>~675</td><td>Stuart Hwy. Fuel Elliott / Daly Waters.</td></tr>
+        <tr><td>Wed 6 Aug</td><td>Katherine → <b>Halls Creek</b></td><td>~875</td><td>Kununurra (into WA −1:30; <b>quarantine: no fresh fruit/veg/honey</b>), Warmun. Arrive late PM — meet Steve.</td></tr>
+      </table>
+      <p class="small">This 5-day run averages ~870 km/day with two ~1,000 km+ days — tiring. For easier days leave <b>Fri 1 Aug</b>. Confirm the Tundra is set up for remote dirt (clearance, tyres, recovery); fuel range matters between Barkly &amp; Top End roadhouses.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>🏁 Final leg — Halls Creek → the site (both vehicles, together)</h3>
+    <div class="small"><b>Thu 7 Aug</b> · ~40 km east/SE via the <b>Duncan Road</b> then station/community access track · ~1–1.5 hr · 4WD · <b>do this convoy-style</b></div>
+    <ul class="tight">
+      <li>Top up <b>all fuel and water in Halls Creek</b> — it's the last reliable fuel, IGA and mechanic. Carry enough fuel for the full 10 days plus 30% reserve (no fuel at the site).</li>
+      <li>Confirm the exact access track with the <b>pastoral lessee / Wunguu community</b> before driving in — don't free-camp on community or reserve land without the OK.</li>
+      <li>Check current road status with the <b>Shire of Halls Creek</b> and Main Roads before leaving the bitumen; the Duncan can be rough/corrugated even in the dry.</li>
+      <li>Travel in convoy, keep both vehicles in sight, and log a departure/return time with someone in town.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="costs">
+  <h2><span class="ic">💰</span> Vehicle running-cost estimates</h2>
+  <p class="lead">Ballpark per-vehicle costs for the round trip, from real-world fuel consumption and Aug-2026 outback fuel prices. Remote roadhouses run well above city prices — NT diesel averaged ~$2.38/L in early 2026, with remote sites over $3.00/L, and premium petrol is dearer again. Treat these as planning figures, not quotes, and carry a buffer.</p>
+
+  <div class="grid2">
+    <div class="card">
+      <h3>🔵 Steve — Mitsubishi Triton (2.4 turbo-diesel)</h3>
+      <table>
+        <tr><th>Item</th><th>Assumption</th><th>Est.</th></tr>
+        <tr><td>Fuel</td><td>~6,500 km round trip · 12 L/100km loaded · ~780 L · diesel avg ~$2.35/L</td><td><b>~$1,850</b></td></tr>
+        <tr><td>Tyres</td><td>Tread wear + corrugation/puncture risk (budget 1–2 AT tyres)</td><td>~$650</td></tr>
+        <tr><td>Servicing</td><td>Pre- + post-trip oil/filter service &amp; inspection</td><td>~$450</td></tr>
+        <tr><td>Wear &amp; repairs</td><td>Brakes, suspension, belts, windscreen, misc (~$0.10/km)</td><td>~$650</td></tr>
+        <tr><td><b>Total</b></td><td>Range ~$3,200–4,200</td><td><b>~$3,600</b></td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <h3>🟢 Charlie &amp; Drew — Toyota Tundra (i-FORCE MAX V6 petrol)</h3>
+      <table>
+        <tr><th>Item</th><th>Assumption</th><th>Est.</th></tr>
+        <tr><td>Fuel</td><td>~8,800 km round trip · 15 L/100km loaded · ~1,320 L · premium ULP avg ~$2.55/L</td><td><b>~$3,400</b></td></tr>
+        <tr><td>Tyres</td><td>Larger/pricier tyres, longer distance (budget wear + 1–2 tyres)</td><td>~$900</td></tr>
+        <tr><td>Servicing</td><td>Pre- + post-trip service &amp; inspection</td><td>~$600</td></tr>
+        <tr><td>Wear &amp; repairs</td><td>Brakes, suspension, belts, windscreen, misc (~$0.12/km)</td><td>~$1,050</td></tr>
+        <tr><td><b>Total</b></td><td>Range ~$5,200–7,000 · ~$3,000 each, split two ways</td><td><b>~$5,950</b></td></tr>
+      </table>
+      <p class="small">Assumes the current twin-turbo V6 hybrid Tundra (~12 L/100km combined, materially higher loaded). If it's an older <b>5.7 V8</b> (~18–19 L/100km), add ~$800–1,000 to fuel.</p>
+    </div>
+  </div>
+
+  <div class="ok"><b>Combined vehicle cost ≈ $9,500</b> for the trip (range ~$8,400–11,200) — fuel + tyres + servicing + wear only. It excludes food, drinks, camp/park fees, gas, ice, prospecting consumables and any breakdown/recovery. Add a <b>$1,000–1,500 shared contingency</b> for remote-area surprises (a blown tyre or two, a windscreen, a tow).</div>
+  <p class="small">Basis: NT/remote diesel &amp; petrol averages and remote-roadhouse premiums, early–mid 2026 (WA Kimberley &amp; regional QLD comparable); Triton real-world ~11–14 L/100km loaded; Tundra i-FORCE MAX ~12 combined, higher loaded/outback. Prices move — check FuelWatch WA and roadhouse prices before departure.</p>
+</section>
+
+<section id="timeline">
+  <h2><span class="ic">📅</span> Master timeline</h2>
+  <p class="lead">A reconciled schedule that absorbs the longer Gold Coast drive. Adjust the field block to suit, but keep the pre-trip legal work finished <b>before you leave</b> (Charlie &amp; Drew depart Sat 2 Aug).</p>
+
+  <div class="card">
+    <div class="day"><div class="num">A</div><div class="info"><b>Now → 1 Aug — Pre-trip (the make-or-break phase)</b><br>
+      <span class="small">Apply for Miner's Rights · look up &amp; write to tenement holders for consent · engage KLC / Jaru PBC for heritage clearance · ACHIS site check · apply ALPS entry permit if needed · phone the pastoralist · service both vehicles (tyres, fluids, recovery) · book Halls Creek caravan park / lodge for the night of 6 Aug · buy/test sat-comms &amp; PLB.</span></div></div>
+    <div class="day"><div class="num">1</div><div class="info"><b>Sat 2 Aug — Charlie &amp; Drew depart</b><br><span class="small">Leave the Gold Coast early, collect Drew on the Sunshine Coast. Five big days ahead (~4,150 km).</span></div></div>
+    <div class="day"><div class="num">2</div><div class="info"><b>Sun 3 Aug — Steve departs</b><br><span class="small">Leave Dawesville for the Great Northern Highway run (~2,950 km over 4 days).</span></div></div>
+    <div class="day"><div class="num">3–5</div><div class="info"><b>3–5 Aug — On the road</b><br><span class="small">Both vehicles tracking toward Halls Creek. Check in by phone/text each evening; watch fatigue on the long QLD/NT legs.</span></div></div>
+    <div class="day"><div class="num">6</div><div class="info"><b>Wed 6 Aug (late) — Everyone arrives Halls Creek</b><br><span class="small">All three meet in town and overnight at the caravan park / lodge. Final fuel, water, food, ice. Confirm all paperwork in hand; brief heritage no-go zones &amp; safety.</span></div></div>
+    <div class="day"><div class="num">7</div><div class="info"><b>Thu 7 Aug — Drive in to Wunguu &amp; set up camp</b><br><span class="small">Top up everything in Halls Creek, convoy ~40 km to the site, establish base camp, mark tenement boundaries &amp; ACHIS no-go points on GPS.</span></div></div>
+    <div class="day"><div class="num">⛏</div><div class="info"><b>Thu 7 – Sun 17 Aug — 10 nights prospecting at Wunguu</b><br><span class="small">Hand tools &amp; detectors only. Daily field routine below. Mid-block resupply run to Halls Creek if needed (water/ice/fuel).</span></div></div>
+    <div class="day"><div class="num">R</div><div class="info"><b>Sun 17 Aug onward — Pack out &amp; return</b><br><span class="small">Rehabilitate camp (fill holes, pack out all rubbish), then depart. Same routes home — Steve ~4 days, Charlie &amp; Drew ~5 days (budget arrival ~20–21 Aug).</span></div></div>
+  </div>
+
+  <p class="small">Round-trip driving for Charlie &amp; Drew is ~8,300 km — factor vehicle wear, fuel budget and at least one rest day each way.</p>
+</section>
+
+<section id="field">
+  <h2><span class="ic">⛏</span> Field plan &amp; daily routine</h2>
+  <div class="grid2">
+    <div class="card">
+      <h3>Rules of the ground</h3>
+      <ul class="tight">
+        <li><b>Hand tools &amp; metal detectors only</b> — picks, shovels, pans, sieves. No powered digging/machinery.</li>
+        <li>Stay <b>inside tenements you have consent for</b>; keep boundaries loaded on every GPS/phone.</li>
+        <li><b>Avoid all heritage sites</b> from the ACHIS check — treat as hard exclusion zones.</li>
+        <li>Backfill every hole; pack out 100% of rubbish; leave gates as found.</li>
+        <li>Keep clear of stock, bores, dams and the homestead (400 m rule).</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Suggested daily routine (dry-season heat)</h3>
+      <ul class="tight">
+        <li><b>05:45</b> first light — coffee, brief the day's grid.</li>
+        <li><b>06:30–11:30</b> detect/pan the cool hours (most productive).</li>
+        <li><b>11:30–15:00</b> heat of day — shade, log finds, maintain gear, hydrate.</li>
+        <li><b>15:00–18:00</b> second session.</li>
+        <li><b>Evening</b> — mark productive spots on GPS, plan next grid, check comms/weather.</li>
+        <li>Search systematically in <b>parallel lanes</b>; flag and grid-out any "patch".</li>
+      </ul>
+    </div>
+  </div>
+  <div class="ok"><b>✓ August is the sweet spot.</b> Dry-season days ~30–33°C, nights ~10–13°C, low rain risk, firm roads. Still: sun is intense — shade, electrolytes and ≥7 L water/person/day are non-negotiable.</div>
+</section>
+
+<section id="pack">
+  <h2><span class="ic">🎒</span> Packing &amp; equipment checklists</h2>
+  <p class="lead">Remote, no services at the site, no mobile coverage. Self-sufficiency is a safety issue. Tick as you load each vehicle.</p>
+  <div class="progress" data-for="pack"><i></i></div>
+  <div class="card" data-list="pack">
+    <div class="grid2">
+      <div>
+        <h3>Vehicle &amp; recovery</h3>
+        <div class="check" data-id="P1"><input type="checkbox"><div class="body"><div class="t">2× spare tyres each + plugs, pump, gauge</div></div></div>
+        <div class="check" data-id="P2"><input type="checkbox"><div class="body"><div class="t">Recovery kit — snatch strap, rated shackles, MAXTRAX, shovel</div></div></div>
+        <div class="check" data-id="P3"><input type="checkbox"><div class="body"><div class="t">Long-range fuel / jerry cans (10 days + 30% reserve)</div></div></div>
+        <div class="check" data-id="P4"><input type="checkbox"><div class="body"><div class="t">Spare belts, hoses, fluids, fuses, tyre repair, basic tools</div></div></div>
+        <div class="check" data-id="P5"><input type="checkbox"><div class="body"><div class="t">Air compressor + tyre deflators (sand/corrugations)</div></div></div>
+      </div>
+      <div>
+        <h3>Comms &amp; safety</h3>
+        <div class="check" data-id="P6"><input type="checkbox"><div class="body"><div class="t">Satellite phone or Starlink (no mobile coverage at site)</div></div></div>
+        <div class="check" data-id="P7"><input type="checkbox"><div class="body"><div class="t">PLB / EPIRB (registered) + UHF radios in both vehicles</div></div></div>
+        <div class="check" data-id="P8"><input type="checkbox"><div class="body"><div class="t">Comprehensive first-aid kit + snake bandages</div></div></div>
+        <div class="check" data-id="P9"><input type="checkbox"><div class="body"><div class="t">Trip plan left with a contact in town (departure/return times)</div></div></div>
+        <div class="check" data-id="P10"><input type="checkbox"><div class="body"><div class="t">Fire extinguisher; fire-restriction check before any campfire</div></div></div>
+      </div>
+      <div>
+        <h3>Water, food &amp; camp</h3>
+        <div class="check" data-id="P11"><input type="checkbox"><div class="body"><div class="t">Water: ≥7 L/person/day × 10 days + buffer (~250 L total) + filter</div></div></div>
+        <div class="check" data-id="P12"><input type="checkbox"><div class="body"><div class="t">Fridge/freezer + ice plan; non-perishable food for 12 days</div></div></div>
+        <div class="check" data-id="P13"><input type="checkbox"><div class="body"><div class="t">Swags/tents, cold-night sleeping bags (nights ~10°C)</div></div></div>
+        <div class="check" data-id="P14"><input type="checkbox"><div class="body"><div class="t">Shade tarp/awning, camp chairs, lighting, gas cooker</div></div></div>
+      </div>
+      <div>
+        <h3>Prospecting gear &amp; docs</h3>
+        <div class="check" data-id="P15"><input type="checkbox"><div class="body"><div class="t">Metal detectors + spare coils, headphones, batteries/charging</div></div></div>
+        <div class="check" data-id="P16"><input type="checkbox"><div class="body"><div class="t">Gold pans, sieves/classifiers, pick, crevicing tools, scoop</div></div></div>
+        <div class="check" data-id="P17"><input type="checkbox"><div class="body"><div class="t">Sample bags, snuffer bottle, magnet, loupe, small vials</div></div></div>
+        <div class="check" data-id="P18"><input type="checkbox"><div class="body"><div class="t">GPS with tenement boundaries + ACHIS no-go points loaded</div></div></div>
+        <div class="check" data-id="P19"><input type="checkbox"><div class="body"><div class="t">Folder: Miner's Rights, written consents, permits (printed + digital)</div></div></div>
+        <div class="check" data-id="P20"><input type="checkbox"><div class="body"><div class="t">Sun protection — wide hat, long sleeves, SPF50+, fly nets, electrolytes</div></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="contacts">
+  <h2><span class="ic">📞</span> Key contacts &amp; resources</h2>
+  <div class="card">
+    <table>
+      <tr><th>Who</th><th>Why</th><th>Contact</th></tr>
+      <tr><td>DMPE Mining Information Centre</td><td>Tenement holder lookup, Miner's Rights, MTO/TENGRAPH help</td><td>(08) 9222 3626 · mineraltitles.enquiries@dmirs.wa.gov.au</td></tr>
+      <tr><td>DMPE MTO Help</td><td>Mineral Titles Online accounts</td><td>(08) 9222 3030 · mto.help@dmirs.wa.gov.au</td></tr>
+      <tr><td>Kimberley Land Council</td><td>Jaru native title / heritage clearance</td><td>klc.org.au · (08) 9194 0100 (Broome)</td></tr>
+      <tr><td>DPLH — ALPS entry permits</td><td>Aboriginal reserve transit/entry permits</td><td>1300 651 077 · alps@dplh.wa.gov.au</td></tr>
+      <tr><td>DPLH — Aboriginal Heritage (ACHIS)</td><td>Registered site search</td><td>wa.gov.au — Aboriginal heritage</td></tr>
+      <tr><td>Shire of Halls Creek</td><td>Local roads, Duncan Road status, community info</td><td>(08) 9168 6007 · hallscreek.wa.gov.au</td></tr>
+      <tr><td>Halls Creek Visitor Centre</td><td>Fuel/supplies/road advice, bookings</td><td>(08) 9168 6262</td></tr>
+      <tr><td>Main Roads WA</td><td>Highway &amp; road conditions</td><td>138 138 · travelmap.mainroads.wa.gov.au</td></tr>
+      <tr><td>Emergency</td><td>Police / Fire / Ambulance</td><td>000 (mobile 112 / sat phone)</td></tr>
+    </table>
+    <p class="small">Verify all phone numbers when you call — remote contacts change. The tenement-holder phone/email comes from the MTO register once you look up each E80 number.</p>
+  </div>
+</section>
+
+
+
+</div>
+
+<footer>
+  Prepared for Steve, Charlie &amp; Drew · East Kimberley gold prospecting, Aug 2026 · Wunguu Community / Old Flora Valley (MGA Z52 394140E 7973716N)<br>
+  General planning guidance only — confirm all legal requirements directly with DMPE, DPLH and the Kimberley Land Council before entering the field. Conditions and contacts change.
+</footer>
+
+<script>
+(function(){
+  if(typeof L==='undefined'){return;}
+  var map=L.map('map',{scrollWheelZoom:false}).setView([-22,127],4);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    maxZoom:14, attribution:'© OpenStreetMap'}).addTo(map);
+  var gold={radius:9,color:'#e3b341',fillColor:'#e3b341',fillOpacity:.95,weight:2};
+  var white={radius:7,color:'#fff',fillColor:'#fff',fillOpacity:.9,weight:2};
+  L.circleMarker([-18.3237,127.9982],gold).addTo(map).bindPopup('<b>Prospecting site — Wunguu Community / Old Flora Valley</b><br>18.324°S 127.998°E (MGA Z52 394140E 7973716N)<br>Tenements E80/5959, 5609, 5085, 6216');
+  L.circleMarker([-18.2249,127.6694],white).addTo(map).bindPopup('<b>Halls Creek</b> — base town: fuel, IGA, mechanic, last reliable services');
+  [['Mount Flora',-18.323,127.95],['Skillion Hill',-18.30,128.05],['Kununurra',-15.77,128.74],['Broome',-17.96,122.24],['Port Hedland',-20.31,118.61],['Mount Isa',-20.72,139.49],['Tennant Creek',-19.65,134.19]].forEach(function(p){
+    L.circleMarker([p[1],p[2]],{radius:4,color:'#9fb0c0',fillColor:'#9fb0c0',fillOpacity:.8,weight:1}).addTo(map).bindPopup(p[0]);
+  });
+  var steve=[[-32.63,115.62],[-31.95,115.86],[-26.59,118.49],[-23.36,119.73],[-20.31,118.61],[-17.96,122.24],[-18.19,125.57],[-18.2249,127.6694]];
+  var charlie=[[-28.02,153.40],[-26.65,153.09],[-26.57,148.79],[-23.44,144.25],[-20.72,139.49],[-19.65,134.19],[-14.47,132.27],[-15.77,128.74],[-18.2249,127.6694]];
+  L.polyline(steve,{color:'#5b9bd5',weight:3,opacity:.85}).addTo(map).bindPopup('Steve — Dawesville → Halls Creek (~2,950 km)');
+  L.polyline(charlie,{color:'#4caf78',weight:3,opacity:.85}).addTo(map).bindPopup('Charlie & Drew — Gold Coast → Halls Creek (~4,150 km)');
+})();
+
+var KEY='wunguuPlan_v1';
+function load(){try{return JSON.parse(localStorage.getItem(KEY))||{}}catch(e){return{}}}
+function save(s){localStorage.setItem(KEY,JSON.stringify(s))}
+var state=load();
+if(!state.checks)state.checks={};
+if(!state.owners)state.owners={};
+var PEOPLE=['Steve','Charlie','Drew'];
+
+function buildOwners(check){
+  var id=check.dataset.id;
+  var bar=document.createElement('div');bar.className='owner';
+  bar.innerHTML='<small>Owner:</small>';
+  PEOPLE.forEach(function(p){
+    var b=document.createElement('button');b.textContent=p;
+    if((state.owners[id]||check.dataset.who)===p)b.classList.add('on');
+    b.onclick=function(){state.owners[id]=p;save(state);
+      bar.querySelectorAll('button').forEach(function(x){x.classList.remove('on')});
+      b.classList.add('on');};
+    bar.appendChild(b);
+  });
+  check.querySelector('.body').appendChild(bar);
+}
+
+document.querySelectorAll('.check').forEach(function(c){
+  var id=c.dataset.id, cb=c.querySelector('input');
+  if(state.checks[id]){cb.checked=true;c.classList.add('done');}
+  cb.addEventListener('change',function(){
+    state.checks[id]=cb.checked;save(state);
+    c.classList.toggle('done',cb.checked);updateProgress();
+  });
+  if(c.closest('[data-list="legal"]'))buildOwners(c);
+});
+
+function updateProgress(){
+  document.querySelectorAll('.progress').forEach(function(p){
+    var list=document.querySelector('[data-list="'+p.dataset.for+'"]');
+    if(!list)return;
+    var all=list.querySelectorAll('.check'), done=list.querySelectorAll('.check.done');
+    p.querySelector('i').style.width=(all.length?(done.length/all.length*100):0)+'%';
+  });
+}
+updateProgress();
+
+document.querySelectorAll('.filterbar').forEach(function(fb){
+  fb.querySelectorAll('button').forEach(function(b){
+    b.onclick=function(){
+      fb.querySelectorAll('button').forEach(function(x){x.classList.remove('active')});
+      b.classList.add('active');
+      var who=b.dataset.who;
+      document.querySelectorAll('[data-list="'+fb.dataset.filter+'"] .check').forEach(function(c){
+        var owner=state.owners[c.dataset.id]||c.dataset.who;
+        c.style.display=(who==='all'||owner===who)?'flex':'none';
+      });
+    };
+  });
+});
+
+var notes=document.getElementById('notes');
+if(notes){if(state.notes)notes.value=state.notes;
+notes.addEventListener('input',function(){state.notes=notes.value;save(state);});}
+
+function exportState(){
+  var blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='wunguu-plan-progress.json';a.click();
+}
+function importState(e){
+  var f=e.target.files[0];if(!f)return;
+  var r=new FileReader();
+  r.onload=function(){try{state=JSON.parse(r.result);save(state);location.reload();}catch(err){alert('Could not read that file.');}};
+  r.readAsText(f);
+}
+function resetState(){if(confirm('Clear all tick-offs, owners and notes on this device?')){localStorage.removeItem(KEY);location.reload();}}
+</script>
+</body>
+</html>
