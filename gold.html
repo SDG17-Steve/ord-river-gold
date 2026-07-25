@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gold Data — Where the gold actually is | Wunguu / Old Flora Valley</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://unpkg.com/esri-leaflet@3.0.12/dist/esri-leaflet.js"></script>
+<style>
+  :root{
+    --bg:#0f1419; --panel:#1a222c; --panel2:#222d39; --ink:#e8eef4; --muted:#9fb0c0;
+    --gold:#e3b341; --gold2:#c9962e; --red:#e25c5c; --green:#4caf78; --blue:#5b9bd5;
+    --line:#2c3a48; --shadow:0 4px 18px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg);color:var(--ink);line-height:1.55;font-size:15px}
+  a{color:var(--gold)}
+  header.hero{background:linear-gradient(135deg,#1c2630,#0f1419);border-bottom:3px solid var(--gold);padding:28px 22px 22px}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 16px}
+  h1{margin:0 0 4px;font-size:26px;letter-spacing:.3px}
+  h1 span{color:var(--gold)}
+  .sub{color:var(--muted);font-size:14px}
+  .meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+  .chip{background:var(--panel2);border:1px solid var(--line);border-radius:20px;padding:6px 13px;font-size:13px}
+  .chip b{color:var(--gold)}
+  nav{position:sticky;top:0;z-index:500;background:#11181f;border-bottom:1px solid var(--line);
+    display:flex;flex-wrap:wrap;gap:4px;padding:8px 16px;overflow-x:auto}
+  nav a{color:var(--muted);text-decoration:none;font-size:13px;padding:6px 11px;border-radius:7px;white-space:nowrap}
+  nav a:hover{background:var(--panel2);color:var(--ink)}
+  nav a.here{background:var(--gold);color:#1a1a1a;font-weight:700}
+  section{padding:30px 0;border-bottom:1px solid var(--line)}
+  h2{font-size:21px;margin:0 0 6px;display:flex;align-items:center;gap:9px}
+  h2 .ic{font-size:22px}
+  h3{margin:0 0 8px;font-size:17px;color:var(--gold)}
+  .lead{color:var(--muted);margin:0 0 18px;max-width:800px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;margin:14px 0;box-shadow:var(--shadow)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  @media(max-width:760px){.grid2,.grid3{grid-template-columns:1fr}}
+  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;text-align:center}
+  .kpi .n{font-size:30px;font-weight:800;color:var(--gold);line-height:1.15}
+  .kpi .l{font-size:12.5px;color:var(--muted);margin-top:4px}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--gold);font-size:12px;text-transform:uppercase;letter-spacing:.4px}
+  tr:hover td{background:rgba(255,255,255,.02)}
+  td.n{text-align:right;white-space:nowrap}
+  .warn{background:rgba(226,92,92,.12);border:1px solid #5a2b2b;border-radius:10px;padding:13px 15px;margin:14px 0}
+  .warn b{color:#ff9d9d}
+  .ok{background:rgba(76,175,120,.1);border:1px solid #2c5a44;border-radius:10px;padding:13px 15px;margin:14px 0}
+  .ok b{color:#84d6a8}
+  .info{background:rgba(91,155,213,.1);border:1px solid #2c4763;border-radius:10px;padding:13px 15px;margin:14px 0}
+  .pill{display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:12px;text-transform:uppercase;letter-spacing:.5px}
+  .p-open{background:rgba(76,175,120,.18);color:#84d6a8;border:1px solid #2c5a44}
+  .p-shut{background:rgba(226,92,92,.18);color:#ff8d8d;border:1px solid #5a2b2b}
+  .tenement{display:inline-block;background:var(--panel2);border:1px solid var(--gold2);color:var(--gold);
+    border-radius:6px;padding:2px 8px;font-family:monospace;font-size:13px;margin:2px}
+  #map-wrap{position:relative;margin-top:6px}
+  #map{height:520px;border-radius:12px;border:1px solid var(--line)}
+  #map-full-btn{position:absolute;top:10px;right:10px;z-index:600;background:#11181f;color:var(--ink);
+    border:1px solid var(--line);border-radius:8px;padding:7px 12px;font-size:13px;font-weight:600;
+    cursor:pointer;box-shadow:var(--shadow)}
+  #map-full-btn:hover{background:var(--panel2)}
+  body.map-fullscreen{overflow:hidden}
+  body.map-fullscreen #map-wrap{position:fixed;inset:0;margin:0;z-index:3000}
+  body.map-fullscreen #map{height:100%;border-radius:0;border:none}
+  .legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:10px;font-size:13px;color:var(--muted)}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .dot{width:12px;height:12px;border-radius:50%;display:inline-block}
+  ul.tight{margin:6px 0 0;padding-left:20px}
+  ul.tight li{margin:5px 0}
+  .small{font-size:12.5px;color:var(--muted)}
+  footer{padding:26px 16px 50px;color:var(--muted);font-size:12.5px;text-align:center}
+  @media print{nav,#map-full-btn{display:none}body{background:#fff;color:#000}.card{box-shadow:none;border:1px solid #ccc}#map{display:none}}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <h1>Gold Data — <span>where the gold actually is</span></h1>
+    <div class="sub">Sourced from DMIRS MINEDEX and Landgate GEONOMA via the WA Government SLIP services · extract 22 July 2026</div>
+    <div class="meta">
+      <div class="chip">📍 <b>Wungu:</b> 18.3258°S, 128.0000°E</div>
+      <div class="chip">🪙 <b>Au sites ≤10 km:</b> 1</div>
+      <div class="chip">🪙 <b>Au sites ≤20 km:</b> 19</div>
+      <div class="chip">⛏ <b>Closest gold:</b> 5.8 km NW</div>
+      <div class="chip">✅ <b>On open ground:</b> yes</div>
+    </div>
+  </div>
+</header>
+
+<nav>
+  <a href="index.html">← Trip plan</a>
+  <a href="gold.html" class="here">🪙 Gold Data</a>
+  <a href="#tldr">⚡ Quick read</a>
+  <a href="#near">📏 Nearest gold</a>
+  <a href="#tenure">⚖️ Tenure</a>
+  <a href="#map-sec">🗺 Map</a>
+  <a href="#doubt">⚠️ What we're unsure of</a>
+  <a href="#" onclick="window.print();return false;" style="color:var(--gold)">🖨 Print / Save PDF</a>
+</nav>
+
+<div class="wrap">
+
+<section id="tldr">
+  <h2><span class="ic">⚡</span> Quick read — the whole thing in 60 seconds</h2>
+  <p class="lead">Everything below comes from the WA Government's own mineral occurrence database, not from forums or folklore. Read the six points, then check the map.</p>
+
+  <div class="grid3">
+    <div class="kpi"><div class="n">1</div><div class="l">gold site within 10 km of camp</div></div>
+    <div class="kpi"><div class="n">19</div><div class="l">gold sites within 20 km</div></div>
+    <div class="kpi"><div class="n">5.8 km</div><div class="l">to the nearest one</div></div>
+  </div>
+
+  <div class="card">
+    <h3>1. Wungu is confirmed and pinned</h3>
+    <p>Wungu Community sits at <b>18.32583°S, 128.00000°E</b>, at Old Flora Valley homestead inside <b>Reserve 40868</b>. Approved as a place name in 1993. It shows up in Landgate's GEONOMA database only, which is why it's missing from Wikipedia, Google and the gazetteer. Our planned camp coordinate (18.324°S, 127.998°E) is about <b>250 m off it</b>, so we're camping essentially on top of the community. Plan accordingly.</p>
+  </div>
+
+  <div class="card">
+    <h3>2. There is gold here, but only one recorded site inside 10 km</h3>
+    <p><b>Elvire River A</b> (MINEDEX S0024971) is 5.8 km north-west at 18.2978°S, 127.9536°E. It's logged as an <i>occurrence</i>, gold only, undeveloped, with no recorded workings. That's the entire tally inside a 10 km circle.</p>
+  </div>
+
+  <div class="card">
+    <h3>3. The real cluster is 12–16 km west and south-west</h3>
+    <p>Nineteen gold sites sit inside 20 km, and they include actual mines rather than just occurrences: <b>Palm Springs</b> (an open pit plus two alluvial workings, all shut), <b>Poverty Gully 3</b> (shut mine), <b>Golden Crown North</b> and the <b>Faugh-a-Ballagh</b> workings on the Butchers Creek gold project. If we want ground with a proven history, that's the direction to drive.</p>
+  </div>
+
+  <div class="card">
+    <h3>4. Our drawn "prospecting area" isn't where the camp is</h3>
+    <p>The 431 km² polygon in <code>Prospecting_Area_Map.html</code> has the <b>identical bounding box to <span class="tenement">E 80/5959</span></b>. It was drawn around a tenement application, not around gold. Its centroid is <b>27.2 km north of Wungu</b> and the camp falls about 3 km outside its southern edge. Two different places. Worth deciding which one we're actually going to.</p>
+  </div>
+
+  <div class="card">
+    <h3>5. The nearest gold happens to be on legally open ground</h3>
+    <p>Elvire River A sits on <span class="tenement">E 80/5085</span>, still <b>PENDING</b>. Pending means the applicant holds nothing, so the land is treated as open Crown land and our Miner's Right covers it. Same story for the Elvire River deposit inside E 80/5959. Lucky, and worth not squandering.</p>
+  </div>
+
+  <div class="card">
+    <h3>6. The best gold in the northern area is locked</h3>
+    <p><b>Dry Creek</b> is a shut open-pit gold mine with six satellite workings and about 20 gold occurrences along Saunders Creek North. It's the strongest gold in the whole search. It sits on <span class="tenement">E 80/5025</span>, which is <b>LIVE</b> and held by <b>William Robert Richmond</b>. That needs his written consent or our own Section 40E permit, and a 40E carries a 21-day notice period. There isn't time before 3 August. Treat it as closed for this trip.</p>
+  </div>
+
+  <div class="warn">
+    <b>Still the biggest gate:</b> none of this touches native title. This is Jaru country and we're camping at an Aboriginal community. Tenement status decides nothing about whether we're welcome. Get the KLC / PBC response in writing before we leave.
+  </div>
+</section>
+
+<section id="near">
+  <h2><span class="ic">📏</span> Nearest recorded gold to camp</h2>
+  <p class="lead">Straight-line distance from Wungu (18.3258°S, 128.0000°E), calculated on the WGS84 ellipsoid. "Mine" means recorded workings, "occurrence" means someone logged gold but never dug.</p>
+
+  <table>
+    <thead><tr><th>Site</th><th>Type</th><th>Commodity</th><th class="n">From camp</th></tr></thead>
+    <tbody>
+      <tr><td><b>Elvire River A</b></td><td>Occurrence</td><td>Au</td><td class="n">5.8 km</td></tr>
+      <tr><td>Donkey Creek 2</td><td>Occurrence</td><td>Au</td><td class="n">12.2 km</td></tr>
+      <tr><td>Twelve Mile</td><td>Prospect</td><td>Au, Ag</td><td class="n">12.8 km</td></tr>
+      <tr><td>Palm Springs Alluvial 2</td><td><span class="pill p-shut">Mine · shut</span></td><td>Au</td><td class="n">14.3 km</td></tr>
+      <tr><td>Northern Creek</td><td>Occurrence</td><td>Au, Ag</td><td class="n">14.3 km</td></tr>
+      <tr><td>Saunders Creek S</td><td>Occurrence</td><td>Au, Ag</td><td class="n">14.6 km</td></tr>
+      <tr><td>Poverty Gully 1</td><td>Occurrence</td><td>Au, Ag</td><td class="n">15.1 km</td></tr>
+      <tr><td>Poverty Gully 3</td><td><span class="pill p-shut">Mine · shut</span></td><td>Au, Ag</td><td class="n">15.1 km</td></tr>
+      <tr><td>Palm Springs open pit</td><td><span class="pill p-shut">Mine · shut</span></td><td>Au</td><td class="n">15.1 km</td></tr>
+      <tr><td>Poverty Gully 2</td><td>Occurrence</td><td>Au, Ag</td><td class="n">15.2 km</td></tr>
+      <tr><td>Faugh-a-Ballagh</td><td><span class="pill p-shut">Mine · shut</span></td><td>Au</td><td class="n">15.5 km</td></tr>
+      <tr><td>Golden Crown North</td><td><span class="pill p-shut">Open pit · shut</span></td><td>Au, Ag</td><td class="n">15.5 km</td></tr>
+      <tr><td>Gentle Annie E</td><td>Occurrence</td><td>Au, W, Ag</td><td class="n">16.5 km</td></tr>
+      <tr><td>Gentle Annie D</td><td>Occurrence</td><td>Au, Ag</td><td class="n">16.8 km</td></tr>
+      <tr><td>Elvire River <i>(deposit)</i></td><td>Deposit</td><td>Au, Ag</td><td class="n">18.4 km</td></tr>
+      <tr><td>Coghlan East</td><td>Occurrence</td><td>Au</td><td class="n">32.2 km</td></tr>
+      <tr><td>Dry Creek open pit</td><td><span class="pill p-shut">Mine · shut</span></td><td>Au, Ag</td><td class="n">42.6 km</td></tr>
+      <tr><td>Saunders Creek N1–N21 <i>(20 sites)</i></td><td>Occurrences</td><td>Au</td><td class="n">42–48 km</td></tr>
+    </tbody>
+  </table>
+
+  <div class="info" style="margin-top:16px">
+    <b>Reading it honestly:</b> an "occurrence" is a low bar. It means a geologist recorded gold at that spot, sometimes from a single sample. A "mine", even a shut one, means someone found enough to justify moving dirt. Inside 20 km we have <b>six recorded mines</b>, and all six are in the Palm Springs / Poverty Gully / Butchers Creek band to the west.
+  </div>
+</section>
+
+<section id="tenure">
+  <h2><span class="ic">⚖️</span> Can we legally prospect it?</h2>
+  <p class="lead">Point-checked against the live DMIRS tenement layer on 26 July 2026. <b>PENDING</b> means the applicant holds nothing yet, so the ground is open Crown land and a Miner's Right covers it. <b>LIVE</b> means granted, and we need the holder's written consent or our own Section 40E permit.</p>
+
+  <table>
+    <thead><tr><th>Location</th><th>Tenement</th><th>Status</th><th>Holder</th><th>Can we work it?</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>Elvire River A <span class="small">(5.8 km, closest gold)</span></td>
+        <td><span class="tenement">E 80/5085</span></td><td>PENDING</td><td>Sarag Pty Ltd</td>
+        <td><span class="pill p-open">Yes — open ground</span></td>
+      </tr>
+      <tr>
+        <td>Elvire River deposit <span class="small">(18.4 km)</span></td>
+        <td><span class="tenement">E 80/5959</span></td><td>PENDING</td><td>W.R. Richmond</td>
+        <td><span class="pill p-open">Yes — open ground</span></td>
+      </tr>
+      <tr>
+        <td>Wungu camp area</td>
+        <td><span class="tenement">E 80/5085</span> / <span class="tenement">E 80/6216</span></td><td>Both PENDING</td><td>Sarag / Archer X</td>
+        <td><span class="pill p-open">Yes — open ground</span></td>
+      </tr>
+      <tr>
+        <td>Dry Creek open pit <span class="small">(best gold, 42.6 km N)</span></td>
+        <td><span class="tenement">E 80/5025</span></td><td>LIVE</td><td>W.R. Richmond</td>
+        <td><span class="pill p-shut">No — consent or 40E</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="warn">
+    <b>Two traps.</b> First: a Section 40E permit needs <b>21 days' notice</b>, so anything requiring one is out of reach before 3 August. Second: pending status can flip to granted <b>at any time, including while we're out there</b>. The moment it does, the rules invert and we'd need written consent. Re-check every tenement on Tengraph / MTO the day before we leave, and note them down.
+  </div>
+
+  <div class="ok">
+    <b>The practical plan:</b> work the pending ground. Elvire River A on E 80/5085 is 5.8 km from camp, is recorded gold, and is legally open to a Miner's Right today. That's the first place to swing a detector.
+  </div>
+</section>
+
+<section id="map-sec">
+  <h2><span class="ic">🗺</span> The map</h2>
+  <p class="lead">Every MINEDEX gold site within reach, plotted against Wungu with 10 km and 20 km rings. Dark orange = recorded mine or workings. Yellow = occurrence or prospect. Click any point for commodity, type and distance from camp. Toggle the tenement layer and click any block for its live status and holder, pulled straight from WA Government servers. Needs internet.</p>
+  <div id="map-wrap">
+    <button id="map-full-btn" type="button" aria-label="Toggle full page map">⛶ Full page</button>
+    <div id="map"></div>
+  </div>
+  <div class="legend">
+    <span><i class="dot" style="background:#e65100"></i> Gold mine / workings (shut)</span>
+    <span><i class="dot" style="background:#ffd54f"></i> Gold occurrence or prospect</span>
+    <span><i class="dot" style="background:#8d6e63"></i> Cu-Au prospect</span>
+    <span><i class="dot" style="background:#c2185b"></i> Wungu camp</span>
+    <span><i class="dot" style="background:#1565c0"></i> Halls Creek</span>
+    <span><i class="dot" style="background:none;border:2px dashed #c2185b;border-radius:0"></i> 10 / 20 km rings</span>
+    <span><i class="dot" style="background:#ff8c00;border-radius:2px"></i> Our drawn area (= E 80/5959)</span>
+  </div>
+</section>
+
+<section id="doubt">
+  <h2><span class="ic">⚠️</span> What we're not certain about</h2>
+  <div class="card">
+    <ul class="tight">
+      <li><b>An earlier version of this analysis was wrong.</b> It was built on Mindat's locality list, which is badly incomplete for this district, and concluded the area was barren Antrim Plateau basalt. MINEDEX shows otherwise. Everything on this page comes from MINEDEX and the live tenement layer instead.</li>
+      <li><b>MINEDEX records occurrences, not nuggets.</b> There is no public database of who found what with a detector. Nobody publishes their patch. Absence of a record near camp is weak evidence of absence of gold.</li>
+      <li><b>Point-in-tenement checks were done on single coordinates.</b> Tenement boundaries are irregular, so a site 500 m from the one we tested could sit on different ground. Verify on Tengraph before digging.</li>
+      <li><b>Historic accounts describe the Elvire as carrying "fine alluvial gold."</b> Fine gold is effectively invisible to a detector. If that's what's there, the detectors won't see it and we'd need to be washing dirt.</li>
+      <li><b>Water is unconfirmed.</b> It's late dry season. The sluice needs moving water and we have not verified any exists at camp. Assume it doesn't until someone checks, and bring a dry recovery option.</li>
+    </ul>
+  </div>
+</section>
+
+</div>
+
+<footer>
+  Gold occurrence data: DMIRS MINEDEX (DMIRS-001), extract 22 July 2026 · Tenement status: DMIRS Mining Tenements (DMIRS-003), checked 26 July 2026 · Place name: Landgate GEONOMA (LGATE-013)<br>
+  All served from the WA Government SLIP public services. Planning reference only — confirm tenure on Tengraph / Mineral Titles Online and land access with the Kimberley Land Council before entering the field.<br>
+  <span style="color:var(--gold)">Last updated: 26 July 2026</span>
+</footer>
+
+<script>
+(function(){
+  if(typeof L==='undefined'){return;}
+
+  // Our drawn prospecting area — same footprint as E 80/5959
+  var ring=[[128.233342,-18.016653],[128.250009,-18.016653],[128.250009,-18.166653],[128.233342,-18.166653],
+  [128.233342,-18.199986],[128.200009,-18.199986],[128.200009,-18.216653],[128.150008,-18.216653],
+  [128.150008,-18.233320],[128.116675,-18.233320],[128.116675,-18.249986],[128.100008,-18.249986],
+  [128.100008,-18.299986],[128.000008,-18.299986],[128.000008,-18.216653],[128.033341,-18.216653],
+  [128.050008,-18.199986],[128.066675,-18.199986],[128.066675,-18.166653],[128.150008,-18.166653],
+  [128.166675,-18.149987],[128.166675,-17.899986],[128.233342,-17.899986],[128.233342,-18.016653]];
+
+  var sat=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    {maxZoom:19,attribution:'Esri World Imagery'});
+  var topo=L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{maxZoom:17,attribution:'OpenTopoMap (CC-BY-SA)'});
+  var map=L.map('map',{layers:[sat],scrollWheelZoom:true});
+  L.control.scale({imperial:false}).addTo(map);
+
+  var poly=L.polygon(ring.map(function(p){return [p[1],p[0]];}),
+    {color:'#cc5500',weight:2,fillColor:'#ff8c00',fillOpacity:0.10})
+    .bindPopup('<b>Our drawn prospecting area</b><br>Identical footprint to E 80/5959 (Richmond, pending).<br>Centroid is 27.2 km north of camp.');
+  poly.addTo(map);
+
+  var GOLD=[
+   ["Elvire River A",-18.297776,127.953618,"Au","Occurrence","Undeveloped"],
+   ["Donkey Creek 2",-18.337856,127.885518,"Au","Occurrence","Undeveloped"],
+   ["Twelve Mile",-18.277316,127.889898,"Au, Ag","Prospect","Undeveloped"],
+   ["Palm Springs Alluvial 2",-18.297926,127.868008,"Au","Mine","Shut"],
+   ["Palm Springs Alluvial 1",-18.293556,127.861548,"Au","Mine","Shut"],
+   ["Palm Springs open pit",-18.293546,127.861512,"Au","Mine","Shut"],
+   ["Poverty Gully 1",-18.268106,127.870548,"Au, Ag","Occurrence","Undeveloped"],
+   ["Poverty Gully 2",-18.258646,127.874248,"Au, Ag","Occurrence","Undeveloped"],
+   ["Poverty Gully 3",-18.256016,127.876858,"Au, Ag","Mine","Shut"],
+   ["Saunders Creek S",-18.262226,127.878568,"Au, Ag","Occurrence","Undeveloped"],
+   ["Northern Creek",-18.256526,127.885518,"Au, Ag","Occurrence","Undeveloped"],
+   ["Golden Crown North",-18.316215,127.853241,"Au, Ag","Mine","Shut"],
+   ["Golden Crown Extension",-18.320457,127.850078,"Au, Ag","Prospect","Undeveloped"],
+   ["Faugh-a-Ballagh",-18.315446,127.853806,"Au","Mine","Shut"],
+   ["Faugh-a-Ballagh North",-18.313766,127.855448,"Au, Ag","Mine","Shut"],
+   ["Faugh-a-Ballagh South",-18.316736,127.852338,"Au, Pb, Zn, Ag","Prospect","Undeveloped"],
+   ["Gentle Annie D",-18.219076,127.887218,"Au, Ag","Occurrence","Undeveloped"],
+   ["Gentle Annie E",-18.227756,127.883098,"Au, W, Ag","Occurrence","Undeveloped"],
+   ["Elvire River (deposit)",-18.190916,128.102013,"Au, Ag","Deposit","Undeveloped"],
+   ["Coghlan East",-18.036826,128.010189,"Au","Occurrence","Undeveloped"],
+   ["Dry Creek open pit",-17.940936,128.003213,"Au, Ag","Mine","Shut"],
+   ["Dry Creek 1",-17.948636,128.003919,"Au","Mine","Shut"],
+   ["Dry Creek 2",-17.933186,128.021139,"Au","Mine","Shut"],
+   ["Dry Creek 3",-17.944076,128.004439,"Au","Mine","Shut"],
+   ["Dry Creek 4",-17.945516,128.005559,"Au","Mine","Shut"],
+   ["Dry Creek 5",-17.938646,128.020159,"Au","Mine","Shut"],
+   ["Dry Creek 6",-17.939586,128.005379,"Au","Mine","Shut"],
+   ["Dry Creek 7",-17.932826,128.016669,"Au","Occurrence","Undeveloped"],
+   ["Kangaroo Hole",-17.944116,128.006569,"Au","Mine","Shut"],
+   ["No 1 (80)",-17.946946,128.004709,"Au, Ag","Mine","Shut"],
+   ["Saunders Creek N1",-17.892466,128.058209,"Au","Occurrence","Undeveloped"],
+   ["Saunders Creek N3",-17.949596,128.026609,"Au","Occurrence","Undeveloped"],
+   ["Saunders Creek N4",-17.943866,128.039099,"Au","Occurrence","Undeveloped"],
+   ["Saunders Creek N5",-17.912656,128.050029,"Au","Occurrence","Undeveloped"],
+   ["Saunders Creek N6",-17.947216,128.058159,"Au","Prospect","Undeveloped"],
+   ["Saunders Creek N7",-17.935456,128.056149,"Au","Occurrence","Undeveloped"],
+   ["Saunders Creek N8",-17.938986,128.037809,"Au","Occurrence","Undeveloped"],
+   ["Saunders Creek N9",-17.934826,128.038779,"Au","Occurrence","Undeveloped"],
+   ["Saunders Creek N10",-17.926686,128.035789,"Au","Occurrence","Undeveloped"],
+   ["Saunders Creek N11",-17.926536,128.042029,"Au","Occurrence","Undeveloped"],
+   ["Saunders Creek N12",-17.924966,128.053369,"Au","Occurrence","Undeveloped"],
+   ["Saunders Creek N13",-17.915926,128.053229,"Au","Occurrence","Undeveloped"],
+   ["Saunders Creek N14",-17.910326,128.055139,"Au","Occurrence","Undeveloped"],
+   ["Saunders Creek N15",-17.902556,128.055749,"Au","Occurrence","Undeveloped"],
+   ["Saunders Creek N21",-17.897266,128.044639,"Au","Occurrence","Undeveloped"]
+  ];
+  var CUAU=[
+   ["Red Devil",-18.126837,128.126485,"Cu, Au, Ag","Prospect","Shallow workings"],
+   ["Blue Devil",-18.144035,128.105935,"Cu, Au","Target","Untested"]
+  ];
+
+  var WUNGU=[-18.32583333,128.0];
+  function km(a,b){var R=6371.0088,t=Math.PI/180,
+    dla=(b[0]-a[0])*t,dlo=(b[1]-a[1])*t,
+    h=Math.pow(Math.sin(dla/2),2)+Math.cos(a[0]*t)*Math.cos(b[0]*t)*Math.pow(Math.sin(dlo/2),2);
+    return 2*R*Math.asin(Math.sqrt(h));}
+
+  var goldLayer=L.layerGroup(), cuLayer=L.layerGroup();
+  function add(arr,grp,mineCol,occCol){
+    arr.forEach(function(s){
+      var isMine=(s[4]==='Mine'||s[5]==='Shallow workings');
+      L.circleMarker([s[1],s[2]],{radius:isMine?7:5,color:'#111',weight:1,
+        fillColor:isMine?mineCol:occCol,fillOpacity:.92})
+        .bindPopup('<b>'+s[0]+'</b><br>'+s[3]+' &middot; '+s[4]+' &middot; '+s[5]+
+          '<br>'+Math.abs(s[1]).toFixed(4)+'°S, '+s[2].toFixed(4)+'°E'+
+          '<br><i>'+km(WUNGU,[s[1],s[2]]).toFixed(1)+' km from camp</i>')
+        .bindTooltip(s[0]).addTo(grp);
+    });
+  }
+  add(GOLD,goldLayer,'#e65100','#ffd54f');
+  add(CUAU,cuLayer,'#8d6e63','#8d6e63');
+  goldLayer.addTo(map); cuLayer.addTo(map);
+
+  var wLayer=L.layerGroup();
+  L.circleMarker(WUNGU,{radius:8,color:'#880e4f',fillColor:'#c2185b',fillOpacity:1})
+    .bindPopup('<b>Wungu Community / camp</b><br>18.3258°S, 128.0000°E<br>Old Flora Valley homestead, Reserve 40868.')
+    .bindTooltip('Wungu camp',{permanent:true,direction:'right'}).addTo(wLayer);
+  [10000,20000].forEach(function(r){
+    L.circle(WUNGU,{radius:r,color:'#c2185b',weight:2,dashArray:'6,6',fill:false}).addTo(wLayer);
+  });
+  wLayer.addTo(map);
+
+  L.circleMarker([-18.2289,127.6661],{radius:8,color:'#0d47a1',fillColor:'#1565c0',fillOpacity:1})
+    .bindTooltip('Halls Creek').addTo(map);
+
+  var IM='https://services.slip.wa.gov.au/public/rest/services/SLIP_Public_Services/Industry_and_Mining/MapServer';
+  var tenements=L.esri.dynamicMapLayer({url:IM,layers:[3],opacity:0.42,useCors:true});
+  tenements.bindPopup(function(err,fc){
+    if(err||!fc||!fc.features.length) return false;
+    var a=fc.features[0].properties;
+    return '<b>'+(a.fmt_tenid||a.tenid)+'</b> — '+(a.tenstatus||'')+'<br>Holder: '+(a.holder1||'n/a');
+  },{maxWidth:280});
+  tenements.addTo(map);
+
+  map.fitBounds(L.latLngBounds([[-18.46,127.80],[-17.87,128.28]]),{padding:[20,20]});
+
+  L.control.layers({'Satellite':sat,'Topographic':topo},{
+    'Gold sites (MINEDEX)':goldLayer,
+    'Cu-Au prospects':cuLayer,
+    'Camp + 10/20 km rings':wLayer,
+    'Mining tenements (live)':tenements,
+    'Our drawn area':poly
+  },{collapsed:false}).addTo(map);
+
+  var btn=document.getElementById('map-full-btn');
+  if(btn){btn.addEventListener('click',function(){
+    document.body.classList.toggle('map-fullscreen');
+    btn.textContent=document.body.classList.contains('map-fullscreen')?'✕ Close':'⛶ Full page';
+    setTimeout(function(){map.invalidateSize();},220);
+  });}
+})();
+</script>
+</body>
+</html>
